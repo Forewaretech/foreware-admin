@@ -1,0 +1,768 @@
+import { useState } from "react";
+import { Plus, Search, Edit2, Trash2, Eye, ImageIcon, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+
+interface FormField {
+  label: string;
+  type: string;
+  required: boolean;
+  options?: string[];
+}
+
+interface FormItem {
+  id: string;
+  name: string;
+  fields: FormField[];
+  thank_you_message: string;
+  target_emails: string[];
+  status: string;
+  trigger_type: string;
+  assigned_pages: string[];
+  submissions: number;
+  banner_image: string;
+}
+
+const initialForms: FormItem[] = [
+  {
+    id: "1",
+    name: "Contact Form",
+    fields: [
+      { label: "Name", type: "text", required: true },
+      { label: "Email", type: "email", required: true },
+      { label: "Message", type: "textarea", required: true },
+    ],
+    thank_you_message: "Thanks for reaching out!",
+    target_emails: ["info@foreware.io"],
+    status: "active",
+    trigger_type: "embed",
+    assigned_pages: ["/contact"],
+    submissions: 24,
+    banner_image: "",
+  },
+  {
+    id: "2",
+    name: "Newsletter Popup",
+    fields: [{ label: "Email", type: "email", required: true }],
+    thank_you_message: "You're subscribed!",
+    target_emails: ["marketing@foreware.io"],
+    status: "active",
+    trigger_type: "popup_scroll",
+    assigned_pages: ["/blog"],
+    submissions: 87,
+    banner_image: "",
+  },
+];
+
+const FIELD_TYPES = [
+  { value: "text", label: "Text" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "textarea", label: "Text Area" },
+  { value: "number", label: "Number" },
+  { value: "select", label: "Dropdown" },
+];
+
+export default function FormsPopups() {
+  const [forms, setForms] = useState<FormItem[]>(initialForms);
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [previewForm, setPreviewForm] = useState<FormItem | null>(null);
+  const [editing, setEditing] = useState<FormItem | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    trigger_type: "embed",
+    target_emails: "",
+    fields: "" as string,
+    thank_you_message: "",
+    assigned_pages: "",
+    banner_image: "",
+  });
+  const [fieldsList, setFieldsList] = useState<FormField[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim()) e.name = "Name is required";
+    if (fieldsList.length === 0) e.fields = "At least one field is required";
+    if (
+      fieldsList.some(
+        (f) =>
+          f.type === "select" &&
+          (!f.options || f.options.filter(Boolean).length < 2),
+      )
+    )
+      e.fields = "Dropdown fields need at least 2 options";
+    const emails = form.target_emails
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emails.length > 0 && emails.some((em) => !emailRegex.test(em)))
+      e.target_emails = "Invalid email address";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = () => {
+    if (!validate()) return;
+    const emails = form.target_emails
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+    const pages = form.assigned_pages
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (editing) {
+      setForms(
+        forms.map((f) =>
+          f.id === editing.id
+            ? {
+                ...f,
+                name: form.name,
+                trigger_type: form.trigger_type,
+                fields: fieldsList,
+                target_emails: emails,
+                thank_you_message: form.thank_you_message,
+                assigned_pages: pages,
+                banner_image: form.banner_image,
+              }
+            : f,
+        ),
+      );
+      toast.success("Form updated");
+    } else {
+      setForms([
+        {
+          id: crypto.randomUUID(),
+          name: form.name,
+          trigger_type: form.trigger_type,
+          fields: fieldsList,
+          target_emails: emails,
+          thank_you_message: form.thank_you_message,
+          assigned_pages: pages,
+          status: "active",
+          submissions: 0,
+          banner_image: form.banner_image,
+        },
+        ...forms,
+      ]);
+      toast.success("Form created");
+    }
+    setDialogOpen(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setEditing(null);
+    setForm({
+      name: "",
+      trigger_type: "embed",
+      target_emails: "",
+      fields: "",
+      thank_you_message: "",
+      assigned_pages: "",
+      banner_image: "",
+    });
+    setFieldsList([]);
+    setErrors({});
+  };
+
+  const addField = () =>
+    setFieldsList([...fieldsList, { label: "", type: "text", required: true }]);
+
+  const updateField = (idx: number, key: string, value: string | boolean) => {
+    setFieldsList(
+      fieldsList.map((f, i) => (i === idx ? { ...f, [key]: value } : f)),
+    );
+  };
+
+  const updateFieldOptions = (idx: number, optionsStr: string) => {
+    const options = optionsStr.split(",").map((o) => o.trim());
+    setFieldsList(
+      fieldsList.map((f, i) => (i === idx ? { ...f, options } : f)),
+    );
+  };
+
+  const removeField = (idx: number) =>
+    setFieldsList(fieldsList.filter((_, i) => i !== idx));
+
+  const handleBannerSelect = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setForm((f) => ({ ...f, banner_image: URL.createObjectURL(file) }));
+      toast.success("Banner image selected");
+    };
+    input.click();
+  };
+
+  const triggerLabels: Record<string, string> = {
+    embed: "Form",
+    popup_load: "Pop-up (Load)",
+    popup_scroll: "Pop-up (Scroll)",
+    popup_time: "Pop-up (Timer)",
+  };
+  const filtered = forms.filter((f) =>
+    f.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-3 justify-between">
+        <div className="relative max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search forms & pop-ups..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(o) => {
+            setDialogOpen(o);
+            if (!o) resetForm();
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Plus className="w-4 h-4 mr-2" />
+              New Form / Pop-up
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editing ? "Edit" : "New Form / Pop-up"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div>
+                <Label>Name *</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Form name"
+                />
+                {errors.name && (
+                  <p className="text-xs text-destructive mt-1">{errors.name}</p>
+                )}
+              </div>
+              <div>
+                <Label>Type / Trigger</Label>
+                <Select
+                  value={form.trigger_type}
+                  onValueChange={(v) => setForm({ ...form, trigger_type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="embed">Embedded Form</SelectItem>
+                    <SelectItem value="popup_load">
+                      Pop-up (Page Load)
+                    </SelectItem>
+                    <SelectItem value="popup_scroll">
+                      Pop-up (Scroll)
+                    </SelectItem>
+                    <SelectItem value="popup_time">
+                      Pop-up (Time Delay)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Banner Image */}
+              <div>
+                <Label>Banner Image</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={form.banner_image}
+                    onChange={(e) =>
+                      setForm({ ...form, banner_image: e.target.value })
+                    }
+                    placeholder="Banner image URL or upload"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleBannerSelect}
+                    title="Upload banner"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                  </Button>
+                  {form.banner_image && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setForm({ ...form, banner_image: "" })}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {form.banner_image && (
+                  <img
+                    src={form.banner_image}
+                    alt="Banner"
+                    className="w-full max-h-32 object-cover rounded-lg mt-2"
+                  />
+                )}
+              </div>
+
+              {/* Fields Builder */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Form Fields *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addField}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Field
+                  </Button>
+                </div>
+                {errors.fields && (
+                  <p className="text-xs text-destructive mb-2">
+                    {errors.fields}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  {fieldsList.map((field, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2 border rounded-lg bg-secondary/30 space-y-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={field.label}
+                          onChange={(e) =>
+                            updateField(idx, "label", e.target.value)
+                          }
+                          placeholder="Field label"
+                          className="flex-1"
+                        />
+                        <Select
+                          value={field.type}
+                          onValueChange={(v) => updateField(idx, "type", v)}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FIELD_TYPES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>
+                                {t.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <label className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(e) =>
+                              updateField(idx, "required", e.target.checked)
+                            }
+                          />{" "}
+                          Req
+                        </label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeField(idx)}
+                          className="shrink-0"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {field.type === "select" && (
+                        <div className="pl-1">
+                          <Input
+                            value={(field.options || []).join(", ")}
+                            onChange={(e) =>
+                              updateFieldOptions(idx, e.target.value)
+                            }
+                            placeholder="Option 1, Option 2, Option 3 (comma-separated)"
+                            className="text-xs"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Enter dropdown options separated by commas
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {fieldsList.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3 border rounded-lg border-dashed">
+                      Click "Add Field" to start building your form
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label>Email Notifications To</Label>
+                <Input
+                  value={form.target_emails}
+                  onChange={(e) =>
+                    setForm({ ...form, target_emails: e.target.value })
+                  }
+                  placeholder="email@company.com, sales@company.com"
+                />
+                {errors.target_emails && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.target_emails}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label>Thank You Message</Label>
+                <Textarea
+                  value={form.thank_you_message}
+                  onChange={(e) =>
+                    setForm({ ...form, thank_you_message: e.target.value })
+                  }
+                  placeholder="Message shown after submission"
+                />
+              </div>
+              <div>
+                <Label>Show on Pages (comma-separated slugs)</Label>
+                <Input
+                  value={form.assigned_pages}
+                  onChange={(e) =>
+                    setForm({ ...form, assigned_pages: e.target.value })
+                  }
+                  placeholder="/contact, /blog, /pricing"
+                />
+              </div>
+              <Button
+                onClick={handleSave}
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {editing ? "Update" : "Create"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Interactive Preview Modal */}
+      <FormPreviewDialog
+        form={previewForm}
+        onClose={() => setPreviewForm(null)}
+      />
+
+      <div className="bg-card rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-secondary">
+                <th className="text-left p-4 font-medium text-muted-foreground">
+                  Name
+                </th>
+                <th className="text-left p-4 font-medium text-muted-foreground">
+                  Type
+                </th>
+                <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">
+                  Pages
+                </th>
+                <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">
+                  Submissions
+                </th>
+                <th className="text-left p-4 font-medium text-muted-foreground">
+                  Active
+                </th>
+                <th className="text-right p-4 font-medium text-muted-foreground">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((f) => (
+                <tr
+                  key={f.id}
+                  className="border-b last:border-0 hover:bg-secondary/50 transition-colors"
+                >
+                  <td className="p-4 font-medium text-foreground">{f.name}</td>
+                  <td className="p-4">
+                    <Badge
+                      variant="secondary"
+                      className={
+                        f.trigger_type.startsWith("popup")
+                          ? "bg-warning/10 text-warning"
+                          : ""
+                      }
+                    >
+                      {triggerLabels[f.trigger_type] || f.trigger_type}
+                    </Badge>
+                  </td>
+                  <td className="p-4 text-muted-foreground text-xs font-mono hidden sm:table-cell">
+                    {f.assigned_pages.join(", ") || "-"}
+                  </td>
+                  <td className="p-4 text-muted-foreground hidden md:table-cell">
+                    {f.submissions}
+                  </td>
+                  <td className="p-4">
+                    <Switch
+                      checked={f.status === "active"}
+                      onCheckedChange={() =>
+                        setForms(
+                          forms.map((x) =>
+                            x.id === f.id
+                              ? {
+                                  ...x,
+                                  status:
+                                    x.status === "active"
+                                      ? "inactive"
+                                      : "active",
+                                }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setPreviewForm(f)}
+                        title="Preview"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditing(f);
+                          setForm({
+                            name: f.name,
+                            trigger_type: f.trigger_type,
+                            target_emails: f.target_emails.join(", "),
+                            fields: "",
+                            thank_you_message: f.thank_you_message,
+                            assigned_pages: f.assigned_pages.join(", "),
+                            banner_image: f.banner_image,
+                          });
+                          setFieldsList([...f.fields.map((ff) => ({ ...ff }))]);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setForms(forms.filter((x) => x.id !== f.id));
+                          toast.success("Form deleted");
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="p-8 text-center text-muted-foreground"
+                  >
+                    No forms found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Interactive form preview as a separate component */
+function FormPreviewDialog({
+  form,
+  onClose,
+}: {
+  form: FormItem | null;
+  onClose: () => void;
+}) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form) return;
+    const missing = form.fields.filter(
+      (f) => f.required && !values[f.label]?.trim(),
+    );
+    if (missing.length > 0) {
+      toast.error(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
+      return;
+    }
+    setSubmitted(true);
+    toast.success("Form submitted (preview)");
+  };
+
+  const handleClose = () => {
+    setValues({});
+    setSubmitted(false);
+    onClose();
+  };
+
+  return (
+    <Dialog
+      open={!!form}
+      onOpenChange={(o) => {
+        if (!o) handleClose();
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Preview: {form?.name}</DialogTitle>
+        </DialogHeader>
+        {form && (
+          <div className="mt-2 border rounded-lg overflow-hidden">
+            {form.banner_image && (
+              <img
+                src={form.banner_image}
+                alt="Banner"
+                className="w-full h-36 object-cover"
+              />
+            )}
+            <form onSubmit={handleSubmit} className="p-4 space-y-3">
+              {submitted ? (
+                <div className="text-center py-6">
+                  <p className="text-lg font-semibold text-foreground mb-1">
+                    ✓ Submitted!
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {form.thank_you_message || "Thank you for your submission."}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setValues({});
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-semibold text-foreground">{form.name}</h3>
+                  {form.fields.map((field, idx) => (
+                    <div key={idx}>
+                      <label className="text-sm font-medium text-foreground">
+                        {field.label}{" "}
+                        {field.required && (
+                          <span className="text-destructive">*</span>
+                        )}
+                      </label>
+                      <div className="mt-1">
+                        {field.type === "textarea" ? (
+                          <textarea
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            placeholder={field.label}
+                            rows={3}
+                            value={values[field.label] || ""}
+                            onChange={(e) =>
+                              setValues({
+                                ...values,
+                                [field.label]: e.target.value,
+                              })
+                            }
+                          />
+                        ) : field.type === "select" ? (
+                          <select
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            value={values[field.label] || ""}
+                            onChange={(e) =>
+                              setValues({
+                                ...values,
+                                [field.label]: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select {field.label}</option>
+                            {(field.options || [])
+                              .filter(Boolean)
+                              .map((opt, oi) => (
+                                <option key={oi} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={field.type}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            placeholder={field.label}
+                            value={values[field.label] || ""}
+                            onChange={(e) =>
+                              setValues({
+                                ...values,
+                                [field.label]: e.target.value,
+                              })
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="submit"
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    Submit
+                  </Button>
+                </>
+              )}
+            </form>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
