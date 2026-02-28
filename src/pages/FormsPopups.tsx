@@ -21,6 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { deleteFromS3, uploadToS3 } from "@/lib/s3Helpers";
+import { useCreateForm } from "@/hooks/form/useCreateForm";
+import { FormStatusEnum, TriggerEnum } from "@/hooks/form/formService";
 
 interface FormField {
   label: string;
@@ -88,9 +91,14 @@ export default function FormsPopups() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewForm, setPreviewForm] = useState<FormItem | null>(null);
   const [editing, setEditing] = useState<FormItem | null>(null);
+  const [bannerImage, setBannerImage] = useState<File | null>(null);
+  const [finalBannerImageUrl, setFinalBannerImageUrl] = useState("");
+
+  const { mutate: mutateForm, isPending } = useCreateForm();
+
   const [form, setForm] = useState({
     name: "",
-    trigger_type: "embed",
+    trigger_type: TriggerEnum.embed,
     target_emails: "",
     fields: "" as string,
     thank_you_message: "",
@@ -123,54 +131,96 @@ export default function FormsPopups() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    const emails = form.target_emails
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean);
-    const pages = form.assigned_pages
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
-    if (editing) {
-      setForms(
-        forms.map((f) =>
-          f.id === editing.id
-            ? {
-                ...f,
-                name: form.name,
-                trigger_type: form.trigger_type,
-                fields: fieldsList,
-                target_emails: emails,
-                thank_you_message: form.thank_you_message,
-                assigned_pages: pages,
-                banner_image: form.banner_image,
-              }
-            : f,
-        ),
-      );
-      toast.success("Form updated");
-    } else {
-      setForms([
-        {
-          id: crypto.randomUUID(),
+
+    try {
+      const emails = form.target_emails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      const pages = form.assigned_pages
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (editing) {
+        setForms(
+          forms.map((f) =>
+            f.id === editing.id
+              ? {
+                  ...f,
+                  name: form.name,
+                  trigger_type: form.trigger_type,
+                  fields: fieldsList,
+                  target_emails: emails,
+                  thank_you_message: form.thank_you_message,
+                  assigned_pages: pages,
+                  banner_image: form.banner_image,
+                }
+              : f,
+          ),
+        );
+        toast.success("Form updated");
+      } else {
+        let finalImageUrl = form.banner_image;
+
+        // If a new local file was selected, upload it first
+        if (bannerImage) {
+          toast.loading("Uploading banner image...", { id: "upload" });
+          finalImageUrl = await uploadToS3(bannerImage, "form");
+          setFinalBannerImageUrl(finalImageUrl);
+          toast.success("Banner image uploaded", { id: "upload" });
+        }
+
+        const data = {
+          // id: crypto.randomUUID(),
           name: form.name,
           trigger_type: form.trigger_type,
-          fields: fieldsList,
-          target_emails: emails,
+          banner_image: finalImageUrl,
           thank_you_message: form.thank_you_message,
+          status: FormStatusEnum.active,
+          target_emails: emails,
           assigned_pages: pages,
-          status: "active",
-          submissions: 0,
-          banner_image: form.banner_image,
-        },
-        ...forms,
-      ]);
-      toast.success("Form created");
+          fields: fieldsList,
+          // submissions: 0,
+        };
+
+        mutateForm(data, {
+          onSuccess(data, variables, context) {
+            toast.message("Form created successfully");
+          },
+
+          onError: async (error, variables, context) => {
+            console.log("finalBannerImageUrl", finalBannerImageUrl);
+            deleteFromS3(finalBannerImageUrl);
+          },
+        });
+        console.log("DATA: ", data);
+      }
+    } catch (error) {
+      deleteFromS3(finalBannerImageUrl);
     }
-    setDialogOpen(false);
-    resetForm();
+
+    //   setForms([
+    //     {
+    //       id: crypto.randomUUID(),
+    //       name: form.name,
+    //       trigger_type: form.trigger_type,
+    //       fields: fieldsList,
+    //       target_emails: emails,
+    //       thank_you_message: form.thank_you_message,
+    //       assigned_pages: pages,
+    //       status: "active",
+    //       submissions: 0,
+    //       banner_image: form.banner_image,
+    //     },
+    //     ...forms,
+    //   ]);
+
+    //   toast.success("Form created");
+    // }
+    // setDialogOpen(false);
+    // resetForm();
   };
 
   const resetForm = () => {
@@ -214,6 +264,7 @@ export default function FormsPopups() {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
+      setBannerImage(file);
       setForm((f) => ({ ...f, banner_image: URL.createObjectURL(file) }));
       toast.success("Banner image selected");
     };

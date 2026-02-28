@@ -1,16 +1,14 @@
 import axios from "axios";
 
+const storageBaseUrl = `${import.meta.env.VITE_FOREWARE_API_URL}/storage`;
+
 export const uploadToS3 = async (file: File, folder = "blog") => {
-  console.log("FILE: ", file);
   // 1. Get Presigned URL from your API
-  const { data } = await axios.put(
-    `${import.meta.env.VITE_FOREWARE_API_URL}/storage/presigned-url`,
-    {
-      fileName: file.name,
-      fileType: file.type,
-      folder,
-    },
-  );
+  const { data } = await axios.put(`${storageBaseUrl}/presigned-url`, {
+    fileName: file.name,
+    fileType: file.type,
+    folder,
+  });
 
   const { uploadUrl, fileUrl } = data;
 
@@ -19,5 +17,13 @@ export const uploadToS3 = async (file: File, folder = "blog") => {
     headers: { "Content-Type": file.type },
   });
 
+  console.log("uploadUrl, ", uploadUrl);
+  console.log("fileUrl, ", fileUrl);
   return fileUrl; // This is the permanent link
+};
+
+export const deleteFromS3 = async (url: string) => {
+  console.log("IMAGE URL", url);
+  console.log("IMAGE URL PATH", `${storageBaseUrl}/presigned-url/?url=${url}`);
+  await axios.delete(`${storageBaseUrl}/presigned-url/?url=${url}`);
 };
