@@ -1,9 +1,5 @@
-import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, Eye, ImageIcon, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,8 +7,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,17 +16,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { deleteFromS3, uploadToS3 } from "@/lib/s3Helpers";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  FormField,
+  FormFieldEnum,
+  FormStatusEnum,
+  TriggerEnum,
+} from "@/hooks/form/formService";
 import { useCreateForm } from "@/hooks/form/useCreateForm";
-import { FormStatusEnum, TriggerEnum } from "@/hooks/form/formService";
+import { useDeleteForm } from "@/hooks/form/useDelete";
+import { useEditForm } from "@/hooks/form/useEditForm";
+import useMyForms from "@/hooks/form/useForms";
+import { deleteFromS3, uploadToS3 } from "@/lib/s3Helpers";
+import { Edit2, Eye, ImageIcon, Plus, Search, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-interface FormField {
-  label: string;
-  type: string;
-  required: boolean;
-  options?: string[];
-}
+// interface FormField {
+//   label: string;
+//   type: string;
+//   required: boolean;
+//   options?: string[];
+// }
 
 interface FormItem {
   id: string;
@@ -50,9 +58,9 @@ const initialForms: FormItem[] = [
     id: "1",
     name: "Contact Form",
     fields: [
-      { label: "Name", type: "text", required: true },
-      { label: "Email", type: "email", required: true },
-      { label: "Message", type: "textarea", required: true },
+      { label: "Name", type: FormFieldEnum.TEXT, required: true },
+      { label: "Email", type: FormFieldEnum.EMAIL, required: true },
+      { label: "Message", type: FormFieldEnum.TEXTAREA, required: true },
     ],
     thank_you_message: "Thanks for reaching out!",
     target_emails: ["info@foreware.io"],
@@ -65,7 +73,7 @@ const initialForms: FormItem[] = [
   {
     id: "2",
     name: "Newsletter Popup",
-    fields: [{ label: "Email", type: "email", required: true }],
+    fields: [{ label: "Email", type: FormFieldEnum.EMAIL, required: true }],
     thank_you_message: "You're subscribed!",
     target_emails: ["marketing@foreware.io"],
     status: "active",
@@ -95,6 +103,14 @@ export default function FormsPopups() {
   const [finalBannerImageUrl, setFinalBannerImageUrl] = useState("");
 
   const { mutate: mutateForm, isPending } = useCreateForm();
+  const { mutate: mutateEditForm, isPending: isPendingEdit } = useEditForm();
+  const { mutate: deleteForm, isPending: isPendingDelete } = useDeleteForm();
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const { data, isLoading: isLoadingForms } = useMyForms();
+
+  const myForms = data ? data.data : [];
 
   const [form, setForm] = useState({
     name: "",
@@ -115,7 +131,7 @@ export default function FormsPopups() {
     if (
       fieldsList.some(
         (f) =>
-          f.type === "select" &&
+          f.type === FormFieldEnum.SELECT &&
           (!f.options || f.options.filter(Boolean).length < 2),
       )
     )
@@ -144,32 +160,80 @@ export default function FormsPopups() {
         .map((p) => p.trim())
         .filter(Boolean);
       if (editing) {
-        setForms(
-          forms.map((f) =>
-            f.id === editing.id
-              ? {
-                  ...f,
-                  name: form.name,
-                  trigger_type: form.trigger_type,
-                  fields: fieldsList,
-                  target_emails: emails,
-                  thank_you_message: form.thank_you_message,
-                  assigned_pages: pages,
-                  banner_image: form.banner_image,
+        if (editing) {
+          let finalImageUrl = form.banner_image;
+
+          // If a new banner file was selected, upload first
+          if (bannerImage) {
+            setIsUploadingImage(true);
+            toast.loading("Uploading banner image...", { id: "upload" });
+
+            finalImageUrl = await uploadToS3(bannerImage, "form");
+
+            toast.success("Banner image uploaded", { id: "upload" });
+            setIsUploadingImage(false);
+          }
+
+          const updatePayload = {
+            name: form.name,
+            trigger_type: form.trigger_type,
+            banner_image: finalImageUrl || undefined,
+            thank_you_message: form.thank_you_message,
+            target_emails: emails,
+            assigned_pages: pages,
+            fields: fieldsList,
+          };
+
+          mutateEditForm(
+            {
+              id: editing.id,
+              data: updatePayload,
+            },
+            {
+              onSuccess: () => {
+                toast.success("Form updated successfully");
+                setDialogOpen(false);
+                resetForm();
+              },
+              onError: async () => {
+                if (bannerImage && finalImageUrl) {
+                  await deleteFromS3(finalImageUrl);
                 }
-              : f,
-          ),
-        );
-        toast.success("Form updated");
+              },
+            },
+          );
+
+          return;
+        }
+
+        // setForms(
+        //   forms.map((f) =>
+        //     f.id === editing.id
+        //       ? {
+        //           ...f,
+        //           name: form.name,
+        //           trigger_type: form.trigger_type,
+        //           fields: fieldsList,
+        //           target_emails: emails,
+        //           thank_you_message: form.thank_you_message,
+        //           assigned_pages: pages,
+        //           banner_image: form.banner_image,
+        //         }
+        //       : f,
+        //   ),
+        // );
+        // toast.success("Form updated");
       } else {
         let finalImageUrl = form.banner_image;
 
         // If a new local file was selected, upload it first
         if (bannerImage) {
+          setIsUploadingImage(true);
           toast.loading("Uploading banner image...", { id: "upload" });
           finalImageUrl = await uploadToS3(bannerImage, "form");
           setFinalBannerImageUrl(finalImageUrl);
           toast.success("Banner image uploaded", { id: "upload" });
+          setIsUploadingImage(false);
         }
 
         const data = {
@@ -185,13 +249,15 @@ export default function FormsPopups() {
           // submissions: 0,
         };
 
+        console.log("DATA: ", data);
+
         mutateForm(data, {
-          onSuccess(data, variables, context) {
+          onSuccess() {
             toast.message("Form created successfully");
+            setDialogOpen(false);
           },
 
-          onError: async (error, variables, context) => {
-            console.log("finalBannerImageUrl", finalBannerImageUrl);
+          onError: async () => {
             deleteFromS3(finalBannerImageUrl);
           },
         });
@@ -227,7 +293,7 @@ export default function FormsPopups() {
     setEditing(null);
     setForm({
       name: "",
-      trigger_type: "embed",
+      trigger_type: TriggerEnum.embed,
       target_emails: "",
       fields: "",
       thank_you_message: "",
@@ -239,7 +305,10 @@ export default function FormsPopups() {
   };
 
   const addField = () =>
-    setFieldsList([...fieldsList, { label: "", type: "text", required: true }]);
+    setFieldsList([
+      ...fieldsList,
+      { label: "", type: FormFieldEnum.TEXT, required: true },
+    ]);
 
   const updateField = (idx: number, key: string, value: string | boolean) => {
     setFieldsList(
@@ -277,7 +346,8 @@ export default function FormsPopups() {
     popup_scroll: "Pop-up (Scroll)",
     popup_time: "Pop-up (Timer)",
   };
-  const filtered = forms.filter((f) =>
+
+  const filtered = myForms?.filter((f) =>
     f.name.toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -328,7 +398,9 @@ export default function FormsPopups() {
                 <Label>Type / Trigger</Label>
                 <Select
                   value={form.trigger_type}
-                  onValueChange={(v) => setForm({ ...form, trigger_type: v })}
+                  onValueChange={(v) =>
+                    setForm({ ...form, trigger_type: v as TriggerEnum })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -445,7 +517,7 @@ export default function FormsPopups() {
                             onChange={(e) =>
                               updateField(idx, "required", e.target.checked)
                             }
-                          />{" "}
+                          />
                           Req
                         </label>
                         <Button
@@ -519,10 +591,15 @@ export default function FormsPopups() {
                 />
               </div>
               <Button
+                disabled={isPending || isUploadingImage}
                 onClick={handleSave}
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
               >
-                {editing ? "Update" : "Create"}
+                {isPending || isUploadingImage ? (
+                  <span>Loading...</span>
+                ) : (
+                  <span>{editing ? "Update" : "Create"}</span>
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -571,38 +648,34 @@ export default function FormsPopups() {
                     <Badge
                       variant="secondary"
                       className={
-                        f.trigger_type.startsWith("popup")
+                        f.triggerType.startsWith("popup")
                           ? "bg-warning/10 text-warning"
                           : ""
                       }
                     >
-                      {triggerLabels[f.trigger_type] || f.trigger_type}
+                      {triggerLabels[f.triggerType] || f.triggerType}
                     </Badge>
                   </td>
                   <td className="p-4 text-muted-foreground text-xs font-mono hidden sm:table-cell">
-                    {f.assigned_pages.join(", ") || "-"}
+                    {f.assignedPages.join(", ") || "-"}
                   </td>
                   <td className="p-4 text-muted-foreground hidden md:table-cell">
-                    {f.submissions}
+                    {f?.submissions}
                   </td>
                   <td className="p-4">
                     <Switch
-                      checked={f.status === "active"}
-                      onCheckedChange={() =>
-                        setForms(
-                          forms.map((x) =>
-                            x.id === f.id
-                              ? {
-                                  ...x,
-                                  status:
-                                    x.status === "active"
-                                      ? "inactive"
-                                      : "active",
-                                }
-                              : x,
-                          ),
-                        )
-                      }
+                      checked={f.status === "ACTIVE"}
+                      onCheckedChange={() => {
+                        mutateEditForm({
+                          id: f.id,
+                          data: {
+                            status:
+                              f.status === "ACTIVE"
+                                ? FormStatusEnum.inactive
+                                : FormStatusEnum.active,
+                          },
+                        });
+                      }}
                     />
                   </td>
                   <td className="p-4">
@@ -622,12 +695,12 @@ export default function FormsPopups() {
                           setEditing(f);
                           setForm({
                             name: f.name,
-                            trigger_type: f.trigger_type,
-                            target_emails: f.target_emails.join(", "),
+                            trigger_type: f.triggerType as TriggerEnum,
+                            target_emails: f.targetEmails.join(", "),
                             fields: "",
-                            thank_you_message: f.thank_you_message,
-                            assigned_pages: f.assigned_pages.join(", "),
-                            banner_image: f.banner_image,
+                            thank_you_message: f.thankYouMessage,
+                            assigned_pages: f.assignedPages.join(", "),
+                            banner_image: f.bannerImage,
                           });
                           setFieldsList([...f.fields.map((ff) => ({ ...ff }))]);
                           setDialogOpen(true);
@@ -639,9 +712,19 @@ export default function FormsPopups() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          setForms(forms.filter((x) => x.id !== f.id));
-                          toast.success("Form deleted");
+                          deleteForm(f.id, {
+                            onSuccess: () => {
+                              toast.success("Form deleted successfully");
+                            },
+                            onError: () => {
+                              toast.error("Failed to delete form");
+                            },
+                          });
                         }}
+                        // onClick={() => {
+                        //   setForms(forms.filter((x) => x.id !== f.id));
+                        //   toast.success("Form deleted");
+                        // }}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>

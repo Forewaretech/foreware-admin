@@ -3,17 +3,20 @@ import { createResourceApi } from "@/lib/apiClient";
 import { z } from "zod";
 
 export enum FormFieldEnum {
-  TEXT,
-  EMAIL,
-  TEXTAREA,
-  NUMBER,
-  SELECT,
-  CHECKBOX,
+  TEXT = "text",
+  EMAIL = "email",
+  TEXTAREA = "textarea",
+  NUMBER = "number",
+  SELECT = "select",
+  PHONE = "phone",
+  CHECKBOX = "checkbox",
 }
 
 export enum TriggerEnum {
   embed = "embed",
-  popup = "popup",
+  popup_load = "popup_load",
+  popup_scroll = "popup_scroll",
+  popup_time = "popup_time",
 }
 
 export enum FormStatusEnum {
@@ -21,12 +24,23 @@ export enum FormStatusEnum {
   inactive = "inactive",
 }
 
+export enum FieldsEnum {
+  text = "text",
+  email = "email",
+  textarea = "textarea",
+  number = "number",
+  select = "select",
+  checkbox = "checkbox",
+}
+
 export const formFieldSchema = z.object({
   label: z.string().min(1),
   name: z.string().min(1),
   type: z.nativeEnum(FormFieldEnum),
-  required: z.boolean().optional(),
-  placeholder: z.string().optional(),
+  required: z.boolean().default(true),
+  options: z.array(z.string()).optional(),
+
+  // placeholder: z.string().optional(),
 });
 
 export const createFormSchema = z.object({
@@ -39,25 +53,22 @@ export const createFormSchema = z.object({
   target_emails: z.array(z.string().email()).min(1),
   assigned_pages: z.array(z.string()).optional(),
 
+  fields: z.array(formFieldSchema).min(1),
+});
+
+export const updateFormSchema = createFormSchema.partial().extend({
   fields: z
     .array(
-      z.object({
-        label: z.string(),
-        type: z.enum([
-          "text",
-          "email",
-          "textarea",
-          "number",
-          "select",
-          "checkbox",
-        ]),
-        required: z.boolean().optional(),
+      formFieldSchema.extend({
+        id: z.string().optional(), // important for existing fields
       }),
     )
-    .min(1),
+    .optional(),
 });
 
 export type FormType = z.infer<typeof createFormSchema>;
+export type FormUpdateType = z.infer<typeof updateFormSchema>;
+export type FormField = z.infer<typeof formFieldSchema>;
 
 const formService = createResourceApi<FormType>("forms");
 

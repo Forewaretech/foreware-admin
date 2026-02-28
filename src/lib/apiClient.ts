@@ -1,29 +1,45 @@
 import axios from "axios";
 
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
 export const apiClient = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: import.meta.env.VITE_FOREWARE_API_URL!,
   headers: { "Content-Type": "application/json" },
 });
 
 export const createResourceApi = <T, CreateDTO = Partial<T>>(
   resource: string,
 ) => ({
-  getAll: async (): Promise<T[]> => {
-    const { data } = await apiClient.get(`/${resource}`);
-    return data;
+  getAll: async (): Promise<ApiResponse<T>> => {
+    const response = await apiClient.get<ApiResponse<T>>(`/${resource}`);
+    return response.data;
   },
+
   getOne: async (id: string | number): Promise<T> => {
-    const { data } = await apiClient.get(`/${resource}/${id}`);
-    return data;
+    const response = await apiClient.get<ApiResponse<T>>(`/${resource}/${id}`);
+    return response.data.data;
   },
+
   create: async (payload: CreateDTO): Promise<T> => {
-    const { data } = await apiClient.post(`/${resource}`, payload);
-    return data;
+    const response = await apiClient.post<ApiResponse<T>>(
+      `/${resource}`,
+      payload,
+    );
+    return response.data.data;
   },
+
   update: async (id: string | number, payload: Partial<T>): Promise<T> => {
-    const { data } = await apiClient.patch(`/${resource}/${id}`, payload);
-    return data;
+    const response = await apiClient.patch<ApiResponse<T>>(
+      `/${resource}/${id}`,
+      payload,
+    );
+    return response.data.data;
   },
+
   delete: async (id: string | number): Promise<void> => {
     await apiClient.delete(`/${resource}/${id}`);
   },
