@@ -218,7 +218,6 @@ export default function Tracking() {
                     <SelectContent>
                       <SelectItem value="header">Header</SelectItem>
                       <SelectItem value="body">Body</SelectItem>
-                      <SelectItem value="footer">Footer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

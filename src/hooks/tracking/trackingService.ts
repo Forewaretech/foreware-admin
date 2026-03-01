@@ -11,7 +11,6 @@ export enum PlatformEnum {
 export enum PlacementEnum {
   header = "header",
   body = "body",
-  footer = "footer",
 }
 
 export enum TrackingTypeEnum {
