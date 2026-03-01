@@ -14,8 +14,8 @@ export const apiClient = axios.create({
 export const createResourceApi = <T, CreateDTO = Partial<T>>(
   resource: string,
 ) => ({
-  getAll: async (): Promise<ApiResponse<T>> => {
-    const response = await apiClient.get<ApiResponse<T>>(`/${resource}`);
+  getAll: async (): Promise<ApiResponse<T[]>> => {
+    const response = await apiClient.get<ApiResponse<T[]>>(`/${resource}`);
     return response.data;
   },
 

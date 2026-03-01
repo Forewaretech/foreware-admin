@@ -25,7 +25,7 @@ import {
   TriggerEnum,
 } from "@/hooks/form/formService";
 import { useCreateForm } from "@/hooks/form/useCreateForm";
-import { useDeleteForm } from "@/hooks/form/useDelete";
+import { useDeleteForm } from "@/hooks/form/useDeleteForm";
 import { useEditForm } from "@/hooks/form/useEditForm";
 import useMyForms from "@/hooks/form/useForms";
 import { deleteFromS3, uploadToS3 } from "@/lib/s3Helpers";

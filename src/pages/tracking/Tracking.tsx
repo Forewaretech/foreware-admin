@@ -21,6 +21,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import useCreateTrackingCode from "@/hooks/tracking/useCreateTrackingCode";
+import { AxiosError } from "axios";
+import {
+  PlacementEnum,
+  PlatformEnum,
+  TrackingTypeEnum,
+} from "@/hooks/tracking/trackingService";
+import useTrackingCodes from "@/hooks/tracking/useTrackingCodes";
+import { useEditTrackingCode } from "@/hooks/tracking/useEditTrackingCode";
+import { useDeleteTrackingCode } from "@/hooks/tracking/useDeleteTrackingCode";
 
 interface TrackingCode {
   id: string;
@@ -73,6 +83,12 @@ export default function Tracking() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const { mutate: mutateTrackingCode, isPending: isPendingTrackingCode } =
+    useCreateTrackingCode();
+  const { data: trackingCodeData } = useTrackingCodes();
+  const { mutate: editTrackingCode } = useEditTrackingCode();
+  const { mutate: deleteTrackingCode } = useDeleteTrackingCode();
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Name is required";
@@ -84,28 +100,52 @@ export default function Tracking() {
 
   const handleSave = () => {
     if (!validate()) return;
-    setCodes([
-      { ...form, id: crypto.randomUUID(), status: "active" },
-      ...codes,
-    ]);
-    setDialogOpen(false);
-    setForm({
-      name: "",
-      platform: "",
-      placement: "header",
-      type: "page",
-      snippet: "",
+
+    const data = {
+      name: form.name,
+      placement: form.placement as PlacementEnum,
+      platform: form.platform as PlatformEnum,
+      type: form.type as TrackingTypeEnum,
+      codeSnippet: form.snippet,
+    };
+
+    mutateTrackingCode(data, {
+      onSuccess: () => {
+        toast.success("Tracking code added - ready for submission");
+        setDialogOpen(false);
+        setForm({
+          name: "",
+          platform: "",
+          placement: "header",
+          type: "page",
+          snippet: "",
+        });
+        setErrors({});
+      },
+      onError(error, variables, context) {
+        if (error instanceof AxiosError) {
+          console.log(error.response.data);
+        }
+      },
     });
-    setErrors({});
-    toast.success("Tracking code added - ready for submission");
   };
 
   const getPlatformLabel = (value: string) =>
     PLATFORMS.find((p) => p.value === value)?.label || value;
 
-  const filtered = codes.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const trackingCodes = trackingCodeData ? trackingCodeData.data : [];
+
+  const filtered = trackingCodes
+    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    .map((code) => ({
+      id: code.id,
+      name: code.name,
+      platform: code.platform.toLowerCase(),
+      placement: code.placement.toLowerCase(),
+      type: code.type.toLowerCase(),
+      status: code.status.toLowerCase(),
+      snippet: code.codeSnippet,
+    }));
 
   return (
     <div className="space-y-6">
@@ -178,7 +218,7 @@ export default function Tracking() {
                     <SelectContent>
                       <SelectItem value="header">Header</SelectItem>
                       <SelectItem value="body">Body</SelectItem>
-                      <SelectItem value="tag_manager">Tag Manager</SelectItem>
+                      <SelectItem value="footer">Footer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -217,10 +257,11 @@ export default function Tracking() {
                 )}
               </div>
               <Button
+                disabled={isPendingTrackingCode}
                 onClick={handleSave}
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
               >
-                Add Code
+                {isPendingTrackingCode ? "Loading..." : "Add Code"}
               </Button>
             </div>
           </DialogContent>
@@ -274,21 +315,26 @@ export default function Tracking() {
                   <td className="p-4">
                     <Switch
                       checked={code.status === "active"}
-                      onCheckedChange={() =>
-                        setCodes(
-                          codes.map((c) =>
-                            c.id === code.id
-                              ? {
-                                  ...c,
-                                  status:
-                                    c.status === "active"
-                                      ? "inactive"
-                                      : "active",
-                                }
-                              : c,
-                          ),
-                        )
-                      }
+                      onCheckedChange={() => {
+                        editTrackingCode(
+                          {
+                            id: code.id,
+                            data: {
+                              status:
+                                code.status === "active"
+                                  ? "inactive"
+                                  : "active",
+                            },
+                          },
+                          {
+                            onError(error, variables, context) {
+                              if (error instanceof AxiosError) {
+                                console.log(error.response.data);
+                              }
+                            },
+                          },
+                        );
+                      }}
                     />
                   </td>
                   <td className="p-4">
@@ -297,8 +343,12 @@ export default function Tracking() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          setCodes(codes.filter((c) => c.id !== code.id));
-                          toast.success("Tracking code removed");
+                          deleteTrackingCode(code.id, {
+                            onSuccess(data, variables, context) {
+                              toast.success("Tracking code removed");
+                            },
+                          });
+                          // setCodes(codes.filter((c) => c.id !== code.id));
                         }}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
