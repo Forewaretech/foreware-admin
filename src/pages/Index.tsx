@@ -40,7 +40,7 @@ export default function Index() {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard
           title="Blog Posts"
           value={24}
@@ -48,13 +48,7 @@ export default function Index() {
           change="+3 this week"
           positive
         />
-        <StatCard
-          title="Pages"
-          value={12}
-          icon={File}
-          change="+1 this week"
-          positive
-        />
+
         <StatCard
           title="Total Leads"
           value={187}

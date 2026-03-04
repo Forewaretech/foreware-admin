@@ -11,7 +11,7 @@ import BlogPosts from "./pages/blog/BlogPosts";
 import PagesManager from "./pages/PagesManager";
 import FormsPopups from "./pages/form/FormsPopups";
 import Tracking from "./pages/tracking/Tracking";
-import Leads from "./pages/Leads";
+import Leads from "./pages/lead/Leads";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import UsersPage from "./pages/UsersPage";

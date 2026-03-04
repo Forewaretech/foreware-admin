@@ -1,59 +1,18 @@
-import { useState } from "react";
-import { Search, Download, Mail, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Download, Eye, Mail, Search } from "lucide-react";
+import { useState } from "react";
+
+import { LeadType } from "@/hooks/lead/leadService";
 import { toast } from "sonner";
-
-interface Lead {
-  id: string;
-  data: Record<string, string>;
-  form_name: string;
-  page_url: string;
-  status: string;
-  created_at: string;
-}
-
-const initialLeads: Lead[] = [
-  {
-    id: "1",
-    data: {
-      Name: "John Doe",
-      Email: "john@acme.com",
-      Message: "Interested in fleet demo",
-    },
-    form_name: "Contact Form",
-    page_url: "/contact",
-    status: "new",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    data: {
-      Name: "Jane Smith",
-      Email: "jane@logistics.co",
-      Phone: "+1 555-0123",
-    },
-    form_name: "Contact Form",
-    page_url: "/contact",
-    status: "contacted",
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: "3",
-    data: { Email: "reader@example.com" },
-    form_name: "Newsletter Popup",
-    page_url: "/blog",
-    status: "new",
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-  },
-];
+import useLeads from "@/hooks/lead/useLeads";
 
 const statusColors: Record<string, string> = {
   new: "bg-accent/10 text-accent",
@@ -63,9 +22,27 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Leads() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const { data: leadData } = useLeads();
+
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Lead | null>(null);
+  const [selected, setSelected] = useState<LeadType | null>(null);
+
+  const leads: LeadType[] =
+    leadData?.data?.map((lead) => {
+      const latestSubmission = lead.submissions?.[0];
+
+      return {
+        id: lead.id,
+        data: latestSubmission?.data || {
+          Name: lead.name,
+          Email: lead.email,
+        },
+        form_name: lead.source || "Unknown",
+        page_url: latestSubmission?.form?.assignedPages?.[0] || "",
+        status: lead.status.toLowerCase(), // important
+        created_at: new Date().toISOString(), // use backend createdAt if available
+      };
+    }) || [];
 
   const filtered = leads.filter((l) => {
     const str =
@@ -74,7 +51,7 @@ export default function Leads() {
   });
 
   const updateStatus = (id: string, status: string) => {
-    setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
+    // setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
     if (selected?.id === id) setSelected({ ...selected, status });
     toast.success("Status updated");
   };
