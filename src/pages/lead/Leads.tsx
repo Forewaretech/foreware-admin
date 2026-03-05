@@ -13,6 +13,7 @@ import { useState } from "react";
 import { LeadType } from "@/hooks/lead/leadService";
 import { toast } from "sonner";
 import useLeads from "@/hooks/lead/useLeads";
+import { useUpdateLead } from "@/hooks/lead/useUpdateLead";
 
 const statusColors: Record<string, string> = {
   new: "bg-accent/10 text-accent",
@@ -23,9 +24,11 @@ const statusColors: Record<string, string> = {
 
 export default function Leads() {
   const { data: leadData } = useLeads();
+  const { mutate: mutateLead } = useUpdateLead();
 
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<LeadType | null>(null);
+  // const [selected, setSelected] = useState<LeadType | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const leads: LeadType[] =
     leadData?.data?.map((lead) => {
@@ -50,10 +53,20 @@ export default function Leads() {
     return str.includes(search.toLowerCase());
   });
 
+  const selected = leads.find((l) => l.id === selectedId) || null;
+
   const updateStatus = (id: string, status: string) => {
-    // setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
-    if (selected?.id === id) setSelected({ ...selected, status });
-    toast.success("Status updated");
+    mutateLead(
+      { id, data: { status } },
+      {
+        onSuccess() {
+          toast.success("Status updated");
+        },
+        onError(error) {
+          toast.error(`Failed to Update Status: ${error.message}`);
+        },
+      },
+    );
   };
 
   const exportCSV = () => {
@@ -101,7 +114,10 @@ export default function Leads() {
         </Button>
       </div>
 
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+      <Dialog
+        open={!!selectedId}
+        onOpenChange={(o) => !o && setSelectedId(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Lead Details</DialogTitle>
@@ -143,7 +159,7 @@ export default function Leads() {
                       key={s}
                       variant={selected.status === s ? "default" : "outline"}
                       size="sm"
-                      onClick={() => updateStatus(selected.id, s)}
+                      onClick={() => updateStatus(selected.id, s.toUpperCase())}
                       className={
                         selected.status === s
                           ? "bg-accent text-accent-foreground"
@@ -221,7 +237,7 @@ export default function Leads() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setSelected(lead)}
+                        onClick={() => setSelectedId(lead.id)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>

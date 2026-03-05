@@ -32,9 +32,13 @@ export const createResourceApi = <T, CreateDTO = Partial<T>>(
     return response.data.data;
   },
 
-  update: async (id: string | number, payload: Partial<T>): Promise<T> => {
+  update: async (
+    id: string | number,
+    payload: Partial<T>,
+    config?: { path?: string },
+  ): Promise<T> => {
     const response = await apiClient.patch<ApiResponse<T>>(
-      `/${resource}/${id}`,
+      `/${resource}/${id}/${config?.path ? config?.path : ""}`,
       payload,
     );
     return response.data.data;
