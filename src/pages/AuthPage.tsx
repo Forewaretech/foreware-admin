@@ -33,10 +33,15 @@ export default function AuthPage() {
             F
           </div>
           <h1 className="text-2xl font-bold text-foreground">Foreware CMS</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your account</p>
+          <p className="text-sm text-muted-foreground">
+            Sign in to your account
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-card border rounded-lg p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-card border rounded-lg p-6 space-y-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

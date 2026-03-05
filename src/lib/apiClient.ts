@@ -9,6 +9,7 @@ export interface ApiResponse<T> {
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_FOREWARE_API_URL!,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
 export const createResourceApi = <T, CreateDTO = Partial<T>>(
@@ -24,11 +25,15 @@ export const createResourceApi = <T, CreateDTO = Partial<T>>(
     return response.data.data;
   },
 
-  create: async (payload: CreateDTO): Promise<T> => {
+  create: async (
+    payload: CreateDTO,
+    config?: { path?: string },
+  ): Promise<T> => {
     const response = await apiClient.post<ApiResponse<T>>(
-      `/${resource}`,
+      `/${resource}/${config?.path ? config?.path : ""}`,
       payload,
     );
+
     return response.data.data;
   },
 

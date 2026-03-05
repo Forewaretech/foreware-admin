@@ -13,7 +13,7 @@ const roleBadge: Record<string, string> = {
 };
 
 export default function ProfilePage() {
-  const { currentUser, updateProfile } = useAuth();
+  const { currentUser } = useAuth();
   const [name, setName] = useState(currentUser?.name ?? "");
   const [email, setEmail] = useState(currentUser?.email ?? "");
 
@@ -24,10 +24,12 @@ export default function ProfilePage() {
       toast.error("Name and email are required");
       return;
     }
-    updateProfile({ name: name.trim(), email: email.trim() });
+    // updateProfile({ name: name.trim(), email: email.trim() });
     toast.success("Profile updated");
   };
 
+  console.log("currentUser: ", currentUser);
+  return <div>LOve</div>;
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-card rounded-lg border p-6 space-y-6">
@@ -36,9 +38,13 @@ export default function ProfilePage() {
             {currentUser.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">{currentUser.name}</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              {currentUser.name}
+            </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-muted-foreground">{currentUser.email}</span>
+              <span className="text-sm text-muted-foreground">
+                {currentUser.email}
+              </span>
               <Badge variant="secondary">{roleBadge[currentUser.role]}</Badge>
             </div>
           </div>
@@ -51,15 +57,26 @@ export default function ProfilePage() {
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Role</Label>
-            <Input value={roleBadge[currentUser.role]} disabled className="bg-muted" />
+            <Input
+              value={roleBadge[currentUser.role]}
+              disabled
+              className="bg-muted"
+            />
           </div>
         </div>
 
-        <Button onClick={handleSave} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button
+          onClick={handleSave}
+          className="bg-accent text-accent-foreground hover:bg-accent/90"
+        >
           Save Changes
         </Button>
       </div>
