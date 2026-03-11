@@ -6,6 +6,7 @@ export const postSchema = z.object({
   slug: z.string().min(1, "Slug is required"),
   category: z.string().optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
+  summary: z.string().min(1, "Summary is required"),
   content: z.string().min(1, "Content is required"),
   seoTitle: z.string().max(60, "Max 60 characters").optional(),
   seoDescription: z.string().max(160, "Max 160 characters").optional(),

@@ -205,24 +205,6 @@ export default function FormsPopups() {
 
           return;
         }
-
-        // setForms(
-        //   forms.map((f) =>
-        //     f.id === editing.id
-        //       ? {
-        //           ...f,
-        //           name: form.name,
-        //           trigger_type: form.trigger_type,
-        //           fields: fieldsList,
-        //           target_emails: emails,
-        //           thank_you_message: form.thank_you_message,
-        //           assigned_pages: pages,
-        //           banner_image: form.banner_image,
-        //         }
-        //       : f,
-        //   ),
-        // );
-        // toast.success("Form updated");
       } else {
         let finalImageUrl = form.banner_image;
 

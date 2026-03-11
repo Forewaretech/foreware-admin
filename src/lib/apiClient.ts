@@ -55,8 +55,45 @@ export const createResourceApi = <T, CreateDTO = Partial<T>>(
 });
 
 // Optional: Add interceptors for tokens
-// api.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token");
-//   if (token) config.headers.Authorization = `Bearer ${token}`;
-//   return config;
-// });
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Flag to avoid infinite loops
+let isRefreshing = false;
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If access token expired
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return Promise.reject(error);
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Attempt to refresh
+        await apiClient.post("/auth/refresh-token");
+
+        isRefreshing = false;
+        return apiClient(originalRequest); // retry original request
+      } catch (refreshError) {
+        isRefreshing = false;
+
+        // Refresh failed => logout user fully
+        await apiClient.post("/auth/logout");
+
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);

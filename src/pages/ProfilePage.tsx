@@ -29,7 +29,7 @@ export default function ProfilePage() {
   };
 
   console.log("currentUser: ", currentUser);
-  return <div>LOve</div>;
+  // return <div>LOve</div>;
   return (
     <div className="max-w-2xl space-y-6">
       <div className="bg-card rounded-lg border p-6 space-y-6">
@@ -45,7 +45,9 @@ export default function ProfilePage() {
               <span className="text-sm text-muted-foreground">
                 {currentUser.email}
               </span>
-              <Badge variant="secondary">{roleBadge[currentUser.role]}</Badge>
+              <Badge variant="secondary">
+                {roleBadge[currentUser.role.toLowerCase()]}
+              </Badge>
             </div>
           </div>
         </div>
@@ -66,7 +68,7 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <Label>Role</Label>
             <Input
-              value={roleBadge[currentUser.role]}
+              value={roleBadge[currentUser.role.toLowerCase()]}
               disabled
               className="bg-muted"
             />

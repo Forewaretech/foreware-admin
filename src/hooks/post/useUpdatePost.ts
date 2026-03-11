@@ -21,7 +21,9 @@ export const useUpdatePost = () => {
 
       // 3. Optimistically update the specific post in the array
       queryClient.setQueryData<BlogPostType[]>(queryKey, (old) =>
-        old?.map((post) => (post.id === id ? { ...post, ...data } : post)),
+        old?.data?.map((post) =>
+          post.id === id ? { ...post, ...data } : post,
+        ),
       );
 
       // 4. Return context for rollback

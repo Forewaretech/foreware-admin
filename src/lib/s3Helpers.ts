@@ -23,7 +23,5 @@ export const uploadToS3 = async (file: File, folder = "blog") => {
 };
 
 export const deleteFromS3 = async (url: string) => {
-  console.log("IMAGE URL", url);
-  console.log("IMAGE URL PATH", `${storageBaseUrl}/presigned-url/?url=${url}`);
   await axios.delete(`${storageBaseUrl}/presigned-url/?url=${url}`);
 };

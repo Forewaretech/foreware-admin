@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import PostModificationDialog from "./PostModificationDialog";
 
 export default function BlogPosts() {
-  const { data: posts, isLoading: isLoadingPosts } = usePosts();
+  const { data: postsData, isLoading: isLoadingPosts } = usePosts();
+
+  const posts = postsData?.data ?? [];
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -30,9 +32,9 @@ export default function BlogPosts() {
     setDialogOpen(true);
   };
 
-  const handleNewPost = () => {
+  const handleNewPost = (o: boolean) => {
     setEditingPost(null); // Clear the post data
-    setDialogOpen(true); // Open dialog
+    setDialogOpen(!!o); // Open dialog
   };
 
   const filtered = isLoadingPosts

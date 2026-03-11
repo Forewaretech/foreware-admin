@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import AuthPage from "./pages/AuthPage";
-import Index from "./pages/Index";
+import Index from "./pages/home/Index";
 import BlogPosts from "./pages/blog/BlogPosts";
 import PagesManager from "./pages/PagesManager";
 import FormsPopups from "./pages/form/FormsPopups";

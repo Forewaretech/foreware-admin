@@ -23,7 +23,7 @@ import { toast } from "sonner";
 
 import { useUpdatePost } from "@/hooks/post/useUpdatePost";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { uploadToS3 } from "@/lib/s3Helpers";
+import { deleteFromS3, uploadToS3 } from "@/lib/s3Helpers";
 
 interface Props {
   defatultPost?: BlogPostType;
@@ -38,6 +38,7 @@ const PostModificationDialog = ({
   const { mutate, isPending } = useCreatePost();
   const { mutate: updatePostMutate, isPending: isPendingUpdatePost } =
     useUpdatePost();
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const {
     register,
@@ -47,7 +48,7 @@ const PostModificationDialog = ({
     watch,
     control,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<BlogPostType>({
     resolver: zodResolver(postSchema),
   });
@@ -98,9 +99,11 @@ const PostModificationDialog = ({
 
       // If a new local file was selected, upload it first
       if (selectedFile) {
+        setIsUploadingFile(true);
         toast.loading("Uploading image...", { id: "upload" });
         finalImageUrl = await uploadToS3(selectedFile);
         toast.success("Image uploaded", { id: "upload" });
+        setIsUploadingFile(false);
       }
 
       const payload = { ...data, featuredImage: finalImageUrl };
@@ -113,6 +116,12 @@ const PostModificationDialog = ({
               toast.success("Post updated!");
               setDialogOpen(false);
               reset();
+              setIsUploadingFile(false);
+            },
+            onError: async (error, variables, context) => {
+              console.log("error: ", error);
+              deleteFromS3(finalImageUrl);
+              setIsUploadingFile(false);
             },
           },
         );
@@ -122,6 +131,11 @@ const PostModificationDialog = ({
             toast.success("Post created!");
             setDialogOpen(false);
             reset();
+            setIsUploadingFile(false);
+          },
+          onError: async (error, variables, context) => {
+            deleteFromS3(finalImageUrl);
+            setIsUploadingFile(false);
           },
         });
       }
@@ -129,29 +143,46 @@ const PostModificationDialog = ({
       toast.error("Upload failed. Please try again.");
       toast.error("Uploading image failed", { id: "upload" });
       console.error(error);
+      setIsUploadingFile(false);
     }
   };
 
-  // Sync form state when defatultPost arrives or changes
   useEffect(() => {
+    setSelectedFile(null); // Reset the file state
     if (defatultPost) {
-      reset(defatultPost);
+      // Convert any null values from the DB to empty strings for the form inputs
+      const sanitizedPost = Object.entries(defatultPost).reduce(
+        (acc, [key, value]) => {
+          acc[key] = value === null ? "" : value;
+          return acc;
+        },
+        { status: "DRAFT" } as any,
+      );
+      reset(sanitizedPost);
     } else {
-      reset({ status: "DRAFT", content: "" });
+      // Ensure EVERY field is reset to its empty state
+      reset({
+        title: "",
+        slug: "",
+        category: "",
+        status: "DRAFT",
+        featuredImage: "", // <--- Crucial
+        featuredImageTitle: "",
+        featuredImageCaption: "",
+        summary: "",
+        content: "",
+        seoTitle: "",
+        seoDescription: "",
+      });
     }
-  }, [defatultPost, reset]);
+  }, [defatultPost, isEditPost, reset]);
 
   return (
     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{isEditPost ? "Edit Post" : "New Blog Post"}</DialogTitle>
       </DialogHeader>
-      <form
-        onSubmit={handleSubmit(onSubmit, (errors) => {
-          console.log("ERROR FORM: ", errors);
-        })}
-        className="space-y-4 mt-2"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
         <div className="space-y-4 mt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -189,15 +220,25 @@ const PostModificationDialog = ({
             </div>
             <div>
               <Label>Status</Label>
-              <Select {...register("status")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="PUBLISHED">Published</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="PUBLISHED">Published</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div>
               <Label>Featured Image</Label>
@@ -245,6 +286,13 @@ const PostModificationDialog = ({
             </div>
           )}
           <div>
+            <div>
+              <Label>Summary</Label>
+              <Input
+                {...register("summary")}
+                placeholder="Summary display on card"
+              />
+            </div>
             <Label>Content</Label>
             <Controller
               name="content"
@@ -294,18 +342,22 @@ const PostModificationDialog = ({
           {isEditPost ? (
             <Button
               type="submit"
-              disabled={isPendingUpdatePost}
+              disabled={
+                (!isDirty && !selectedFile) ||
+                isPendingUpdatePost ||
+                isUploadingFile
+              }
               className="w-full bg-accent text-accent-foreground"
             >
-              {isPending ? "Updating..." : "Update Post"}
+              {isPending || isUploadingFile ? "Updating..." : "Update Post"}
             </Button>
           ) : (
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || isUploadingFile}
               className="w-full bg-accent text-accent-foreground"
             >
-              {isPending ? "Creating..." : "Create Post"}
+              {isPending || isUploadingFile ? "Creating..." : "Create Post"}
             </Button>
           )}
         </div>
