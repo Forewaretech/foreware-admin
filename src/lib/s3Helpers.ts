@@ -17,8 +17,6 @@ export const uploadToS3 = async (file: File, folder = "blog") => {
     headers: { "Content-Type": file.type },
   });
 
-  console.log("uploadUrl, ", uploadUrl);
-  console.log("fileUrl, ", fileUrl);
   return fileUrl; // This is the permanent link
 };
 
