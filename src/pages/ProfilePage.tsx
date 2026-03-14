@@ -55,11 +55,16 @@ export default function ProfilePage() {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Full Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              disabled
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
             <Input
+              disabled
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -75,12 +80,12 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <Button
+        {/* <Button
           onClick={handleSave}
           className="bg-accent text-accent-foreground hover:bg-accent/90"
         >
           Save Changes
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

@@ -33,56 +33,18 @@ import { Edit2, Eye, ImageIcon, Plus, Search, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-// interface FormField {
-//   label: string;
-//   type: string;
-//   required: boolean;
-//   options?: string[];
-// }
-
 interface FormItem {
   id: string;
   name: string;
   fields: FormField[];
-  thank_you_message: string;
-  target_emails: string[];
+  thankYouMessage: string;
+  targetEmails: string[];
   status: string;
-  trigger_type: string;
-  assigned_pages: string[];
+  triggerType: string;
+  assignedPages: string[];
   submissions: number;
-  banner_image: string;
+  bannerImage: string;
 }
-
-const initialForms: FormItem[] = [
-  {
-    id: "1",
-    name: "Contact Form",
-    fields: [
-      { label: "Name", type: FormFieldEnum.TEXT, required: true },
-      { label: "Email", type: FormFieldEnum.EMAIL, required: true },
-      { label: "Message", type: FormFieldEnum.TEXTAREA, required: true },
-    ],
-    thank_you_message: "Thanks for reaching out!",
-    target_emails: ["info@foreware.io"],
-    status: "active",
-    trigger_type: "embed",
-    assigned_pages: ["/contact"],
-    submissions: 24,
-    banner_image: "",
-  },
-  {
-    id: "2",
-    name: "Newsletter Popup",
-    fields: [{ label: "Email", type: FormFieldEnum.EMAIL, required: true }],
-    thank_you_message: "You're subscribed!",
-    target_emails: ["marketing@foreware.io"],
-    status: "active",
-    trigger_type: "popup_scroll",
-    assigned_pages: ["/blog"],
-    submissions: 87,
-    banner_image: "",
-  },
-];
 
 const FIELD_TYPES = [
   { value: "text", label: "Text" },
@@ -94,7 +56,7 @@ const FIELD_TYPES = [
 ];
 
 export default function FormsPopups() {
-  const [forms, setForms] = useState<FormItem[]>(initialForms);
+  // const [forms, setForms] = useState<FormItem[]>(initialForms);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewForm, setPreviewForm] = useState<FormItem | null>(null);
@@ -114,12 +76,12 @@ export default function FormsPopups() {
 
   const [form, setForm] = useState({
     name: "",
-    trigger_type: TriggerEnum.embed,
-    target_emails: "",
+    triggerType: TriggerEnum.embed,
+    targetEmails: "",
     fields: "" as string,
-    thank_you_message: "",
-    assigned_pages: "",
-    banner_image: "",
+    thankYouMessage: "",
+    assignedPages: "",
+    bannerImage: "",
   });
   const [fieldsList, setFieldsList] = useState<FormField[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,7 +98,7 @@ export default function FormsPopups() {
       )
     )
       e.fields = "Dropdown fields need at least 2 options";
-    const emails = form.target_emails
+    const emails = form.targetEmails
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
@@ -151,17 +113,17 @@ export default function FormsPopups() {
     if (!validate()) return;
 
     try {
-      const emails = form.target_emails
+      const emails = form.targetEmails
         .split(",")
         .map((e) => e.trim())
         .filter(Boolean);
-      const pages = form.assigned_pages
+      const pages = form.assignedPages
         .split(",")
         .map((p) => p.trim())
         .filter(Boolean);
       if (editing) {
         if (editing) {
-          let finalImageUrl = form.banner_image;
+          let finalImageUrl = form.bannerImage;
 
           // If a new banner file was selected, upload first
           if (bannerImage) {
@@ -176,11 +138,11 @@ export default function FormsPopups() {
 
           const updatePayload = {
             name: form.name,
-            trigger_type: form.trigger_type,
-            banner_image: finalImageUrl || undefined,
-            thank_you_message: form.thank_you_message,
-            target_emails: emails,
-            assigned_pages: pages,
+            triggerType: form.triggerType,
+            bannerImage: finalImageUrl || undefined,
+            thankYouMessage: form.thankYouMessage,
+            targetEmails: emails,
+            assignedPages: pages,
             fields: fieldsList,
           };
 
@@ -197,7 +159,7 @@ export default function FormsPopups() {
               },
               onError: async () => {
                 if (bannerImage && finalImageUrl) {
-                  await deleteFromS3(finalImageUrl);
+                  if (bannerImage) deleteFromS3(finalBannerImageUrl);
                 }
               },
             },
@@ -206,7 +168,7 @@ export default function FormsPopups() {
           return;
         }
       } else {
-        let finalImageUrl = form.banner_image;
+        let finalImageUrl = form.bannerImage;
 
         // If a new local file was selected, upload it first
         if (bannerImage) {
@@ -219,16 +181,14 @@ export default function FormsPopups() {
         }
 
         const data = {
-          // id: crypto.randomUUID(),
           name: form.name,
-          trigger_type: form.trigger_type,
-          banner_image: finalImageUrl,
-          thank_you_message: form.thank_you_message,
-          status: FormStatusEnum.active,
-          target_emails: emails,
-          assigned_pages: pages,
+          triggerType: form.triggerType,
+          bannerImage: finalImageUrl,
+          thankYouMessage: form.thankYouMessage,
+          status: FormStatusEnum.inactive,
+          targetEmails: emails,
+          assignedPages: pages,
           fields: fieldsList,
-          // submissions: 0,
         };
 
         console.log("DATA: ", data);
@@ -240,47 +200,26 @@ export default function FormsPopups() {
           },
 
           onError: async () => {
-            deleteFromS3(finalBannerImageUrl);
+            if (bannerImage) deleteFromS3(finalBannerImageUrl);
           },
         });
         console.log("DATA: ", data);
       }
     } catch (error) {
-      deleteFromS3(finalBannerImageUrl);
+      if (bannerImage) deleteFromS3(finalBannerImageUrl);
     }
-
-    //   setForms([
-    //     {
-    //       id: crypto.randomUUID(),
-    //       name: form.name,
-    //       trigger_type: form.trigger_type,
-    //       fields: fieldsList,
-    //       target_emails: emails,
-    //       thank_you_message: form.thank_you_message,
-    //       assigned_pages: pages,
-    //       status: "active",
-    //       submissions: 0,
-    //       banner_image: form.banner_image,
-    //     },
-    //     ...forms,
-    //   ]);
-
-    //   toast.success("Form created");
-    // }
-    // setDialogOpen(false);
-    // resetForm();
   };
 
   const resetForm = () => {
     setEditing(null);
     setForm({
       name: "",
-      trigger_type: TriggerEnum.embed,
-      target_emails: "",
+      triggerType: TriggerEnum.embed,
+      targetEmails: "",
       fields: "",
-      thank_you_message: "",
-      assigned_pages: "",
-      banner_image: "",
+      thankYouMessage: "",
+      assignedPages: "",
+      bannerImage: "",
     });
     setFieldsList([]);
     setErrors({});
@@ -379,9 +318,9 @@ export default function FormsPopups() {
               <div>
                 <Label>Type / Trigger</Label>
                 <Select
-                  value={form.trigger_type}
+                  value={form.triggerType}
                   onValueChange={(v) =>
-                    setForm({ ...form, trigger_type: v as TriggerEnum })
+                    setForm({ ...form, triggerType: v as TriggerEnum })
                   }
                 >
                   <SelectTrigger>
@@ -407,9 +346,9 @@ export default function FormsPopups() {
                 <Label>Banner Image</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    value={form.banner_image}
+                    value={form.bannerImage}
                     onChange={(e) =>
-                      setForm({ ...form, banner_image: e.target.value })
+                      setForm({ ...form, bannerImage: e.target.value })
                     }
                     placeholder="Banner image URL or upload"
                     className="flex-1"
@@ -423,20 +362,20 @@ export default function FormsPopups() {
                   >
                     <ImageIcon className="w-4 h-4" />
                   </Button>
-                  {form.banner_image && (
+                  {form.bannerImage && (
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      onClick={() => setForm({ ...form, banner_image: "" })}
+                      onClick={() => setForm({ ...form, bannerImage: "" })}
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   )}
                 </div>
-                {form.banner_image && (
+                {form.bannerImage && (
                   <img
-                    src={form.banner_image}
+                    src={form.bannerImage}
                     alt="Banner"
                     className="w-full max-h-32 object-cover rounded-lg mt-2"
                   />
@@ -540,9 +479,9 @@ export default function FormsPopups() {
               <div>
                 <Label>Email Notifications To</Label>
                 <Input
-                  value={form.target_emails}
+                  value={form.targetEmails}
                   onChange={(e) =>
-                    setForm({ ...form, target_emails: e.target.value })
+                    setForm({ ...form, targetEmails: e.target.value })
                   }
                   placeholder="email@company.com, sales@company.com"
                 />
@@ -555,9 +494,9 @@ export default function FormsPopups() {
               <div>
                 <Label>Thank You Message</Label>
                 <Textarea
-                  value={form.thank_you_message}
+                  value={form.thankYouMessage}
                   onChange={(e) =>
-                    setForm({ ...form, thank_you_message: e.target.value })
+                    setForm({ ...form, thankYouMessage: e.target.value })
                   }
                   placeholder="Message shown after submission"
                 />
@@ -565,9 +504,9 @@ export default function FormsPopups() {
               <div>
                 <Label>Show on Pages (comma-separated slugs)</Label>
                 <Input
-                  value={form.assigned_pages}
+                  value={form.assignedPages}
                   onChange={(e) =>
-                    setForm({ ...form, assigned_pages: e.target.value })
+                    setForm({ ...form, assignedPages: e.target.value })
                   }
                   placeholder="/contact, /blog, /pricing"
                 />
@@ -608,9 +547,9 @@ export default function FormsPopups() {
                 <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">
                   Pages
                 </th>
-                <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">
+                {/*TODO: <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">
                   Submissions
-                </th>
+                </th> */}
                 <th className="text-left p-4 font-medium text-muted-foreground">
                   Active
                 </th>
@@ -630,29 +569,31 @@ export default function FormsPopups() {
                     <Badge
                       variant="secondary"
                       className={
-                        f.triggerType.startsWith("popup")
+                        f.triggerType.toLowerCase().startsWith("popup")
                           ? "bg-warning/10 text-warning"
                           : ""
                       }
                     >
-                      {triggerLabels[f.triggerType] || f.triggerType}
+                      {triggerLabels[f.triggerType.toLowerCase()] ||
+                        f.triggerType.toLowerCase()}
                     </Badge>
                   </td>
                   <td className="p-4 text-muted-foreground text-xs font-mono hidden sm:table-cell">
                     {f.assignedPages.join(", ") || "-"}
                   </td>
                   <td className="p-4 text-muted-foreground hidden md:table-cell">
-                    {f?.submissions}
+                    {/* TODO: Fix Submission */}
+                    {/* {f?.submissions} */}
                   </td>
                   <td className="p-4">
                     <Switch
-                      checked={f.status === "ACTIVE"}
+                      checked={f.status.toLowerCase() === FormStatusEnum.active}
                       onCheckedChange={() => {
                         mutateEditForm({
                           id: f.id,
                           data: {
                             status:
-                              f.status === "ACTIVE"
+                              f.status.toLowerCase() === FormStatusEnum.active
                                 ? FormStatusEnum.inactive
                                 : FormStatusEnum.active,
                           },
@@ -677,14 +618,14 @@ export default function FormsPopups() {
                           setEditing(f);
                           setForm({
                             name: f.name,
-                            trigger_type: f.triggerType as TriggerEnum,
-                            target_emails: f.targetEmails.join(", "),
-                            fields: "",
-                            thank_you_message: f.thankYouMessage,
-                            assigned_pages: f.assignedPages.join(", "),
-                            banner_image: f.bannerImage,
+                            triggerType:
+                              f.triggerType.toLowerCase() as TriggerEnum,
+                            targetEmails: f.targetEmails.join(", "),
+                            thankYouMessage: f.thankYouMessage,
+                            assignedPages: f.assignedPages.join(", "),
+                            bannerImage: f.bannerImage,
                           });
-                          setFieldsList([...f.fields.map((ff) => ({ ...ff }))]);
+                          setFieldsList(f.fields.map((ff) => ({ ...ff })));
                           setDialogOpen(true);
                         }}
                       >
@@ -776,9 +717,9 @@ function FormPreviewDialog({
         </DialogHeader>
         {form && (
           <div className="mt-2 border rounded-lg overflow-hidden">
-            {form.banner_image && (
+            {form.bannerImage && (
               <img
-                src={form.banner_image}
+                src={form.bannerImage}
                 alt="Banner"
                 className="w-full h-36 object-cover"
               />
@@ -790,7 +731,7 @@ function FormPreviewDialog({
                     ✓ Submitted!
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {form.thank_you_message || "Thank you for your submission."}
+                    {form.thankYouMessage || "Thank you for your submission."}
                   </p>
                   <Button
                     type="button"

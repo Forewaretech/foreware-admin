@@ -64,8 +64,11 @@ export default function DashboardLayout({
         className={`fixed z-50 md:relative flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ${collapsed ? "w-[68px]" : "w-[240px]"} ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0">
-            F
+          <div
+            className="w-6 h-6 rounded-lg bg-sidebar-primary flex items-center justify-center 
+          text-sidebar-primary-foreground font-bold text-sm shrink-0"
+          >
+            <img src="/logo.png" alt="Logo" />
           </div>
           {!collapsed && (
             <span className="font-semibold text-sidebar-accent-foreground text-lg tracking-tight">

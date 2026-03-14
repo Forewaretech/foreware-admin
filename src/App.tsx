@@ -12,7 +12,7 @@ import PagesManager from "./pages/PagesManager";
 import FormsPopups from "./pages/form/FormsPopups";
 import Tracking from "./pages/tracking/Tracking";
 import Leads from "./pages/lead/Leads";
-import SettingsPage from "./pages/SettingsPage";
+import SettingsPage from "./pages/settings/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import UsersPage from "./pages/UsersPage";
 import NotFound from "./pages/NotFound";

@@ -11,8 +11,10 @@ export const useEditForm = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: EditFormVariables) =>
-      formService.update(id, data),
+    mutationFn: ({ id, data }: EditFormVariables) => {
+      console.log("Mutata Active: ", data, id);
+      return formService.update(id, data);
+    },
 
     onSuccess: (_, variables) => {
       // Invalidate list

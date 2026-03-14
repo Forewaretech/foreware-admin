@@ -43,16 +43,37 @@ export const formFieldSchema = z.object({
   // placeholder: z.string().optional(),
 });
 
+// [
+//         "displayBehavior": "ONCE_PER_BROWSER",
+//         "closeBehavior": "HIDE_FOR_24H",
+//         "userId": null,
+//         "createdAt": "2026-03-13T21:00:51.300Z",
+//         "updatedAt": "2026-03-13T21:00:51.300Z",
+//         "fields": [
+//             {
+//                 "id": "8caa0ade-74e1-4792-8e7d-99e4430a8999",
+//                 "formId": "f9c79f53-7919-42da-a9bd-28f35618089f",
+//                 "label": "Gender",
+//                 "type": "SELECT",
+//                 "required": true,
+//                 "options": [
+//                     "Male",
+//                     "Female"
+//                 ],
+//                 "createdAt": "2026-03-13T21:00:51.300Z"
+//             }
+//         ]
+//     }
+// ]
+
 export const createFormSchema = z.object({
   name: z.string().min(1),
-  trigger_type: z.nativeEnum(TriggerEnum),
-  banner_image: z.string().url().optional(),
-  thank_you_message: z.string().optional(),
+  triggerType: z.nativeEnum(TriggerEnum),
+  bannerImage: z.string().url().optional(),
+  thankYouMessage: z.string().optional(),
   status: z.nativeEnum(FormStatusEnum).optional(),
-
-  target_emails: z.array(z.string().email()).min(1),
-  assigned_pages: z.array(z.string()).optional(),
-
+  targetEmails: z.array(z.string().email()).min(1),
+  assignedPages: z.array(z.string()).optional(),
   fields: z.array(formFieldSchema).min(1),
 });
 
@@ -66,7 +87,11 @@ export const updateFormSchema = createFormSchema.partial().extend({
     .optional(),
 });
 
-export type FormType = z.infer<typeof createFormSchema>;
+export type FormType = z.infer<typeof createFormSchema> & {
+  id: string;
+  status: FormStatusEnum;
+};
+
 export type FormUpdateType = z.infer<typeof updateFormSchema>;
 export type FormField = z.infer<typeof formFieldSchema>;
 

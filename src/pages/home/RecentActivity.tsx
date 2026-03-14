@@ -6,8 +6,6 @@ const RecentActivity = () => {
 
   const recentActivity = activityData?.data ?? [];
 
-  console.log("activityData: ", activityData);
-
   return (
     <div className="lg:col-span-2 bg-card rounded-lg border p-6">
       <h2 className="text-lg font-semibold text-foreground mb-4">

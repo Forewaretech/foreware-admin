@@ -9,42 +9,70 @@ import {
 import StatCard from "@/components/StatCard";
 import { Link } from "react-router-dom";
 import RecentActivity from "./RecentActivity";
+import useLeads from "@/hooks/lead/useLeads";
+import usePosts from "@/hooks/post/usePosts";
+import useMyForms from "@/hooks/form/useForms";
+import { FormStatusEnum } from "@/hooks/form/formService";
+import useTrackingCodes from "@/hooks/tracking/useTrackingCodes";
 
 export default function Index() {
+  const { data: leadData } = useLeads();
+  const { data: postData } = usePosts();
+  const { data: myFormData } = useMyForms();
+  const { data: trackingData } = useTrackingCodes();
+
+  const leads = leadData?.data ?? [];
+  const posts = postData?.data ?? [];
+  const forms = myFormData?.data ?? [];
+  const trackings = trackingData?.data ?? [];
+
+  const activeCodes = trackings.filter(
+    (t) => t.status.toLowerCase() === "active",
+  );
+
+  const activeForms = forms.filter(
+    (f) => f.status.toLowerCase() === FormStatusEnum.active,
+  );
+
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <StatCard
           title="Blog Posts"
-          value={24}
+          value={posts.length}
           icon={FileText}
-          change="+3 this week"
+          // change="+3 this week"
           positive
         />
 
         <StatCard
           title="Total Leads"
-          value={187}
+          value={leads.length}
           icon={Users}
-          change="+12 this week"
+          // change="+12 this week"
           positive
         />
-        <StatCard title="Active Forms" value={8} icon={FormInput} />
+
         <StatCard
-          title="Page Views"
-          value="4.2K"
+          title="Active Forms"
+          value={activeForms.length}
+          icon={FormInput}
+        />
+        <StatCard
+          title="Active Codes"
+          value={activeCodes.length}
           icon={Eye}
-          change="+18%"
+          // change="+18%"
           positive
         />
-        <StatCard
+        {/* <StatCard
           title="Conversions"
           value="3.1%"
           icon={TrendingUp}
           change="+0.4%"
           positive
-        />
+        /> */}
       </div>
 
       {/* Recent Activity & Quick Actions */}
