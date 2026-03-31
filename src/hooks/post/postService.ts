@@ -13,6 +13,7 @@ export const postSchema = z.object({
   featuredImage: z.string().optional(),
   featuredImageTitle: z.string().optional(),
   featuredImageCaption: z.string().optional(),
+  author: z.string().optional(),
 });
 
 export type BlogPostType = z.infer<typeof postSchema> & {

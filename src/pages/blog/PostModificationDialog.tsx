@@ -184,7 +184,7 @@ const PostModificationDialog = ({
       </DialogHeader>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
         <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Title *</Label>
               <Input
@@ -197,6 +197,14 @@ const PostModificationDialog = ({
                   {errors.title.message}
                 </p>
               )}
+            </div>
+            <div>
+              <Label>Author</Label>
+              <Input
+                {...register("author")}
+                placeholder="Author"
+                className="font-mono text-sm"
+              />
             </div>
             <div>
               <Label>Slug</Label>
