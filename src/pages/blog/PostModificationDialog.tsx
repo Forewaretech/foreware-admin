@@ -147,6 +147,14 @@ const PostModificationDialog = ({
     }
   };
 
+  const handleSaveAsDraft = handleSubmit((data) =>
+    onSubmit({ ...data, status: "DRAFT" }),
+  );
+
+  const handlePublish = handleSubmit((data) =>
+    onSubmit({ ...data, status: "PUBLISHED" }),
+  );
+
   useEffect(() => {
     setSelectedFile(null); // Reset the file state
     if (defatultPost) {
@@ -347,27 +355,45 @@ const PostModificationDialog = ({
               )}
             </div>
           </div>
-          {isEditPost ? (
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
+              onClick={handleSaveAsDraft}
               disabled={
-                (!isDirty && !selectedFile) ||
-                isPendingUpdatePost ||
-                isUploadingFile
+                isPending || isPendingUpdatePost || isUploadingFile
               }
-              className="w-full bg-accent text-accent-foreground"
+              className="flex-1"
             >
-              {isPending || isUploadingFile ? "Updating..." : "Update Post"}
+              {isPending || isPendingUpdatePost
+                ? "Saving..."
+                : "Save as Draft"}
             </Button>
-          ) : (
-            <Button
-              type="submit"
-              disabled={isPending || isUploadingFile}
-              className="w-full bg-accent text-accent-foreground"
-            >
-              {isPending || isUploadingFile ? "Creating..." : "Create Post"}
-            </Button>
-          )}
+            {isEditPost ? (
+              <Button
+                type="submit"
+                disabled={
+                  (!isDirty && !selectedFile) ||
+                  isPendingUpdatePost ||
+                  isUploadingFile
+                }
+                className="flex-1 bg-accent text-accent-foreground"
+              >
+                {isPendingUpdatePost || isUploadingFile
+                  ? "Updating..."
+                  : "Update Post"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                disabled={isPending || isUploadingFile}
+                className="flex-1 bg-accent text-accent-foreground"
+              >
+                {isPending || isUploadingFile ? "Publishing..." : "Publish"}
+              </Button>
+            )}
+          </div>
         </div>
       </form>
     </DialogContent>

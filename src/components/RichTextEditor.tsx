@@ -289,8 +289,8 @@ export default function RichTextEditor({
   const Sep = () => <div className="w-px h-6 bg-border mx-1" />;
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-card">
-      <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b bg-secondary/50">
+    <div className="border rounded-lg bg-card">
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 p-1.5 border-b bg-secondary rounded-t-lg">
         {/* Text formatting */}
         <ToolBtn
           onClick={() => editor.chain().focus().toggleBold().run()}
