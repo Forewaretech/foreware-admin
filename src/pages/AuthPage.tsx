@@ -80,11 +80,6 @@ export default function AuthPage() {
             {loading ? "Signing in…" : "Sign In"}
           </Button>
         </form>
-
-        {/* Optional: remove this in production */}
-        <p className="text-xs text-center text-muted-foreground">
-          Default: admin@foreware.io / admin123
-        </p>
       </div>
     </div>
   );
