@@ -14,12 +14,15 @@ export const postSchema = z.object({
   featuredImageTitle: z.string().optional(),
   featuredImageCaption: z.string().optional(),
   author: z.string().optional(),
+  // YYYY-MM-DD from <input type="date">. Empty string == "auto / unset".
+  publishedAt: z.string().optional(),
 });
 
 export type BlogPostType = z.infer<typeof postSchema> & {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  publishedAt: string | null;
   id: string;
 };
 

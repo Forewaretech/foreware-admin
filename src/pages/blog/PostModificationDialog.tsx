@@ -106,7 +106,19 @@ const PostModificationDialog = ({
         setIsUploadingFile(false);
       }
 
-      const payload = { ...data, featuredImage: finalImageUrl };
+      // <input type="date"> gives YYYY-MM-DD; send ISO at UTC noon to avoid
+      // DST/timezone drift shifting the displayed day. Empty string = "let
+      // the API decide" (auto on first publish, untouched otherwise).
+      const dateOnly = data.publishedAt?.trim();
+      const publishedAtIso = dateOnly
+        ? new Date(`${dateOnly}T12:00:00Z`).toISOString()
+        : undefined;
+
+      const payload = {
+        ...data,
+        featuredImage: finalImageUrl,
+        publishedAt: publishedAtIso,
+      };
 
       if (isEditPost) {
         updatePostMutate(
@@ -166,6 +178,10 @@ const PostModificationDialog = ({
         },
         { status: "DRAFT" } as any,
       );
+      // <input type="date"> needs YYYY-MM-DD; trim the time portion off the ISO.
+      sanitizedPost.publishedAt = defatultPost.publishedAt
+        ? defatultPost.publishedAt.slice(0, 10)
+        : "";
       reset(sanitizedPost);
     } else {
       // Ensure EVERY field is reset to its empty state
@@ -181,6 +197,7 @@ const PostModificationDialog = ({
         content: "",
         seoTitle: "",
         seoDescription: "",
+        publishedAt: "",
       });
     }
   }, [defatultPost, isEditPost, reset]);
@@ -257,6 +274,16 @@ const PostModificationDialog = ({
               />
             </div>
             <div>
+              <Label>Published date</Label>
+              <Input type="date" {...register("publishedAt")} />
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave blank to auto-set when publishing. Edit to re-date a
+                refreshed post.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-3">
               <Label>Featured Image</Label>
               <div className="flex gap-2">
                 <Input

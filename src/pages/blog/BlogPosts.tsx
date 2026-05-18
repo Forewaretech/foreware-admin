@@ -83,7 +83,7 @@ export default function BlogPosts() {
                   Category
                 </th>
                 <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">
-                  Date
+                  Published
                 </th>
                 <th className="text-right p-4 font-medium text-muted-foreground">
                   Actions
@@ -145,7 +145,9 @@ export default function BlogPosts() {
                       {post.category}
                     </td>
                     <td className="p-4 text-muted-foreground hidden md:table-cell">
-                      {new Date(post.createdAt).toLocaleDateString()}
+                      {post.publishedAt
+                        ? new Date(post.publishedAt).toLocaleDateString()
+                        : "—"}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-1 justify-end">
