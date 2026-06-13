@@ -255,7 +255,7 @@ export default function FormsPopups() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       setBannerImage(file);
-      setForm((f) => ({ ...f, banner_image: URL.createObjectURL(file) }));
+      setForm((f) => ({ ...f, bannerImage: URL.createObjectURL(file) }));
       toast.success("Banner image selected");
     };
     input.click();
@@ -512,11 +512,11 @@ export default function FormsPopups() {
                 />
               </div>
               <Button
-                disabled={isPending || isUploadingImage}
+                disabled={isPending || isPendingEdit || isUploadingImage}
                 onClick={handleSave}
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
               >
-                {isPending || isUploadingImage ? (
+                {isPending || isPendingEdit || isUploadingImage ? (
                   <span>Loading...</span>
                 ) : (
                   <span>{editing ? "Update" : "Create"}</span>
@@ -625,7 +625,12 @@ export default function FormsPopups() {
                             assignedPages: f.assignedPages.join(", "),
                             bannerImage: f.bannerImage,
                           });
-                          setFieldsList(f.fields.map((ff) => ({ ...ff })));
+                          setFieldsList(
+                            f.fields.map((ff) => ({
+                              ...ff,
+                              type: ff.type.toLowerCase() as FormFieldEnum,
+                            })),
+                          );
                           setDialogOpen(true);
                         }}
                       >
